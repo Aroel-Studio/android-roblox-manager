@@ -55,7 +55,7 @@ Note: For Android 10, replace /sdcard/Download/ with /sdcard/download/ (lowercas
 ### Step 5: Run ARM v3
 
 ```
-tsu -c "python /sdcard/Download/start_arm.py"
+su -c "/data/data/com.termux/files/usr/bin/python /sdcard/Download/start_arm.py"
 ```
 
 ## Update / Reinstall
@@ -74,7 +74,7 @@ su -c "pkill -f start_arm.py"
 mkdir -p ~/.termux/boot
 cat > ~/.termux/boot/start_arm.sh << 'EOF'
 #!/bin/bash
-su -c "export PATH=\$PATH:/data/data/com.termux/files/usr/bin && export TERM=xterm-256color && python /sdcard/Download/start_arm.py" << ANSWERS
+su -c "/data/data/com.termux/files/usr/bin/python /sdcard/Download/start_arm.py" << ANSWERS
 1
 ANSWERS
 EOF

@@ -207,13 +207,14 @@ def init_package_state(package):
         None.
     """
     _package_states[package] = {
-        "status":       ArmState.IDLE,
-        "uptime_start": 0.0,
-        "crash_count":  0,
-        "was_running":  False,
-        "last_seen":    0.0,
-        "retry_count":  0,
-        "username":     "",
+        "status":          ArmState.IDLE,
+        "uptime_start":    0.0,
+        "crash_count":     0,
+        "reconnect_count": 0,
+        "was_running":     False,
+        "last_seen":       0.0,
+        "retry_count":     0,
+        "username":        "",
     }
 
 
@@ -256,6 +257,8 @@ def record_reconnect(package):
     Returns:
         None.
     """
+    state = get_package_state(package)
+    state["reconnect_count"] = state.get("reconnect_count", 0) + 1
 
 
 def get_uptime(package):
@@ -448,32 +451,39 @@ async def run_command(cmd, timeout=10.0):
 
 async def detect_roblox_packages():
     """
-    Detect all installed Roblox packages by scanning /data/data/ directly.
-    Falls back to pm list packages if direct scan fails.
+    Detect all installed Roblox packages by scanning /data/data/ directory.
+    Falls back to pm list packages if /data/data/ is not readable.
 
     Returns:
         list: Sorted list of Roblox package names found on device.
     """
+    #@ Logic: direct scan of /data/data/ is more reliable than pm
+    #@ Logic: requires root access to read /data/data/
     try:
-        #@ Logic: Direct scan is more reliable for root than pm which might fail due to PATH
-        def scan_data():
+        def _scan():
             from pathlib import Path
-            return [d.name for d in Path("/data/data").iterdir() 
-                    if d.is_dir() and "roblox" in d.name.lower()]
+            data_dir = Path("/data/data")
+            if not data_dir.exists():
+                return []
+            packages = []
+            for entry in data_dir.iterdir():
+                if entry.is_dir() and "roblox" in entry.name.lower():
+                    packages.append(entry.name)
+            return sorted(packages)
         
-        result = await asyncio.to_thread(scan_data)
-        if result:
-            return sorted(result)
-    except Exception:
+        packages = await asyncio.to_thread(_scan)
+        if packages:
+            return packages
+    except (PermissionError, OSError):
         pass
 
+    #@ Logic: fallback to pm list packages if /data/data/ scan fails
     output = await run_command(["pm", "list", "packages"], timeout=10.0)
     if not output:
         return []
 
     packages = []
     for line in output.splitlines():
-        #@ Logic: pm output format is "package:com.roblox.client"
         name = line.replace("package:", "").strip()
         if "roblox" in name.lower():
             packages.append(name)
