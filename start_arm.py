@@ -448,11 +448,25 @@ async def run_command(cmd, timeout=10.0):
 
 async def detect_roblox_packages():
     """
-    Detect all installed Roblox packages using pm list packages.
+    Detect all installed Roblox packages by scanning /data/data/ directly.
+    Falls back to pm list packages if direct scan fails.
 
     Returns:
         list: Sorted list of Roblox package names found on device.
     """
+    try:
+        #@ Logic: Direct scan is more reliable for root than pm which might fail due to PATH
+        def scan_data():
+            from pathlib import Path
+            return [d.name for d in Path("/data/data").iterdir() 
+                    if d.is_dir() and "roblox" in d.name.lower()]
+        
+        result = await asyncio.to_thread(scan_data)
+        if result:
+            return sorted(result)
+    except Exception:
+        pass
+
     output = await run_command(["pm", "list", "packages"], timeout=10.0)
     if not output:
         return []
@@ -1630,14 +1644,12 @@ async def main_menu():
                 print("\nReturning to menu")
             except Exception as exc:
                 print(f"Error: {exc}")
+                try:
+                    input("\nPress Enter to continue")
+                except (KeyboardInterrupt, EOFError):
+                    pass
         else:
             print("Invalid selection")
-
-        #@ Logic: pause before redrawing menu so user can read output
-        try:
-            input("\nPress Enter to continue")
-        except (KeyboardInterrupt, EOFError):
-            pass
 
 
 if __name__ == "__main__":
