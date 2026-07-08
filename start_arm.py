@@ -1152,6 +1152,12 @@ async def login_with_cookie(package, cookie):
     Returns:
         bool: True if cookie was written successfully.
     """
+    # 1. Force stop package before writing
+    await run_command(["am", "force-stop", package], timeout=5.0)
+    
+    # 2. Wait 1 second
+    await asyncio.sleep(1)
+    
     xml_content = (
         '<?xml version="1.0" encoding="utf-8" standalone="yes" ?>\n'
         '<map>\n'
@@ -1168,9 +1174,29 @@ async def login_with_cookie(package, cookie):
         return True
     
     try:
+        # 3. Write the cookie XML file
+        # 4. Return True only if file was written successfully
         return await asyncio.to_thread(_write)
     except Exception:
         return False
+
+
+async def login_and_launch(package, cookie):
+    """
+    Write .ROBLOSECURITY cookie and launch Roblox.
+    This ensures Roblox reads the new cookie on startup.
+
+    Args:
+        package: Target Roblox package name.
+        cookie: .ROBLOSECURITY cookie string.
+
+    Returns:
+        bool: True if successful.
+    """
+    success = await login_with_cookie(package, cookie)
+    if success:
+        await run_command(["am", "start", "-n", f"{package}/.MainActivity"], timeout=10.0)
+    return success
 
 
 async def get_cookie_from_package(package):
@@ -1535,8 +1561,8 @@ async def menu_account_manager(config, config_path):
             pkg    = packages[int(sel) - 1]
             cookie = input("Enter .ROBLOSECURITY cookie: ").strip()
             if cookie:
-                ok = await login_with_cookie(pkg, cookie)
-                print("Cookie saved" if ok else "Failed to save cookie")
+                ok = await login_and_launch(pkg, cookie)
+                print("Cookie saved and Roblox launched" if ok else "Failed to save cookie")
             else:
                 print("Empty cookie, skipping")
         else:
