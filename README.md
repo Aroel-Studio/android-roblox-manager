@@ -47,7 +47,7 @@ Grant storage permission when prompted and type "y" if asked.
 ### Step 4: Install ARM v3
 
 ```
-curl -L -o /sdcard/Download/start_arm.py https://raw.githubusercontent.com/Aroel-Studio/roblox-manager-v3/main/start_arm.py
+curl -L -o /sdcard/Download/start_arm.py https://raw.githubusercontent.com/Aroel-Studio/android-roblox-manager/main/start_arm.py
 ```
 
 Note: For Android 10, replace /sdcard/Download/ with /sdcard/download/ (lowercase).

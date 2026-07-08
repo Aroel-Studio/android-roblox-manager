@@ -4,7 +4,7 @@
 # ============================================================
 #
 #  Install / Update:
-#    . <(curl -sL https://raw.githubusercontent.com/Aroel-Studio/roblox-manager-v3/main/setup.sh)
+#    . <(curl -sL https://github.com/Aroel-Studio/android-roblox-manager/main/setup.sh)
 #
 #  Run ARM:
 #    su -c "python /sdcard/Download/start_arm.py"
@@ -24,7 +24,7 @@ else
     ARM_DIR="/sdcard/download"
 fi
 
-REPO_URL="https://raw.githubusercontent.com/Aroel-Studio/roblox-manager-v3/main"
+REPO_URL="https://raw.githubusercontent.com/Aroel-Studio/android-roblox-manager/main"
 
 # --- Boot setup mode ---
 if [ "$1" = "--boot" ]; then
