@@ -631,6 +631,7 @@ def render_status_table(package_states, device_stats):
     Returns:
         None.
     """
+    clear_screen()
     move_cursor_home()
 
     lines = []
@@ -660,11 +661,11 @@ def render_status_table(package_states, device_stats):
     cpu = device_stats.get("cpu_percent", 0)
     ram = device_stats.get("ram_percent", 0)
     lines.append(f"  RAM: {ram}%  CPU: {cpu}%  | Press Ctrl+C to stop")
-    lines.append("")
-
-    #@ Logic: pad with blank lines to overwrite any previous longer output
-    output = "\n".join(lines) + "\n" * 5
-    sys.stdout.write(output)
+    
+    # Pad to fill terminal height
+    lines.extend([""] * 20)
+    
+    sys.stdout.write("\n".join(lines))
     sys.stdout.flush()
 
 
@@ -1158,12 +1159,16 @@ async def login_with_cookie(package, cookie):
         '</map>\n'
     )
     prefs_path = COOKIE_PREFS_PATHS[0].format(pkg=package)
-    try:
-        result = await run_command(
-            ["sh", "-c", f"echo '{xml_content}' > {prefs_path}"],
-            timeout=5.0,
-        )
+    
+    # Write via Python, not shell echo
+    def _write():
+        from pathlib import Path
+        Path(prefs_path).parent.mkdir(parents=True, exist_ok=True)
+        Path(prefs_path).write_text(xml_content, encoding="utf-8")
         return True
+    
+    try:
+        return await asyncio.to_thread(_write)
     except Exception:
         return False
 
@@ -1282,9 +1287,19 @@ async def menu_start_arm(config, config_path):
     #@ Logic: initialize per-package state for all selected packages
     for pkg in packages:
         init_package_state(pkg)
+        
+    # LAUNCH Roblox dulu
+    for pkg in packages:
+        await run_command(["am", "start", "-n", f"{pkg}/.MainActivity"], timeout=10.0)
+        await asyncio.sleep(2)
+    
+    # Rejoin server setelah launch
+    for pkg in packages:
+        await rejoin_server(pkg, config)
 
     await init_webhook()
     clear_screen()
+    print("Starting ARM, press Ctrl+C to stop")
 
     #@ Logic: create all concurrent background tasks
     tasks = [
@@ -1321,8 +1336,9 @@ async def display_loop(config):
         try:
             stats = await get_device_stats()
             render_status_table(_package_states, stats)
-        except Exception:
-            pass
+        except Exception as exc:
+            with open("arm_error.log", "a") as f:
+                f.write(f"Display error: {exc}\n")
         await asyncio.sleep(2)
 
 
