@@ -449,35 +449,30 @@ async def run_command(cmd, timeout=10.0):
         return ""
 
 
-async def detect_roblox_packages():
+async def detect_all_packages():
     """
-    Detect all installed Roblox packages by scanning /data/data/ directory.
-    Falls back to pm list packages if /data/data/ is not readable.
+    List ALL installed packages by scanning /data/data/ directory.
+    Returns every package found, not just Roblox. User selects which
+    ones to monitor.
 
     Returns:
-        list: Sorted list of Roblox package names found on device.
+        list: Sorted list of all package names found in /data/data/.
     """
-    #@ Logic: direct scan of /data/data/ is more reliable than pm
-    #@ Logic: requires root access to read /data/data/
     try:
         def _scan():
             from pathlib import Path
             data_dir = Path("/data/data")
             if not data_dir.exists():
                 return []
-            packages = []
-            for entry in data_dir.iterdir():
-                if entry.is_dir() and "roblox" in entry.name.lower():
-                    packages.append(entry.name)
-            return sorted(packages)
-        
-        packages = await asyncio.to_thread(_scan)
-        if packages:
-            return packages
+            return sorted([
+                entry.name for entry in data_dir.iterdir()
+                if entry.is_dir()
+            ])
+        return await asyncio.to_thread(_scan)
     except (PermissionError, OSError):
         pass
 
-    #@ Logic: fallback to pm list packages if /data/data/ scan fails
+    #@ Logic: fallback to pm list packages
     output = await run_command(["pm", "list", "packages"], timeout=10.0)
     if not output:
         return []
@@ -485,8 +480,7 @@ async def detect_roblox_packages():
     packages = []
     for line in output.splitlines():
         name = line.replace("package:", "").strip()
-        if "roblox" in name.lower():
-            packages.append(name)
+        packages.append(name)
     return sorted(packages)
 
 
@@ -1334,47 +1328,64 @@ async def display_loop(config):
 
 async def menu_package_manager(config, config_path):
     """
-    Interactive package selection menu.
-    Detects all installed Roblox packages and allows multi-select.
+    Show all installed packages. User selects which ones to monitor.
+    Supports multi-select by number and manual package name input.
 
     Args:
         config: Config dict.
-        config_path: Path to config.json for saving.
+        config_path: Path to config.json.
 
     Returns:
         None.
     """
-    print("\nDetecting installed packages")
-    all_packages = await detect_roblox_packages()
+    print("\nScanning installed packages")
+    all_packages = await detect_all_packages()
 
     if not all_packages:
-        print("No Roblox packages found on this device.")
+        print("No packages found. Try manual input.")
+        manual = input("Enter package name (or press Enter to skip): ").strip()
+        if manual:
+            config["packages"] = [manual]
+            save_config(config_path, config)
+            print(f"  [OK] {manual} added")
         return
 
     current = config.get("packages", [])
-    print("\nSelect Roblox packages to monitor:")
+    
+    print("\nSelect packages to monitor:")
+    print("  (Enter numbers separated by commas, or type a package name manually)")
+    print("  (Leave empty to keep current selection)")
+    print()
+    
     for i, pkg in enumerate(all_packages, 1):
         marker = "[x]" if pkg in current else "[ ]"
-        print(f"  {i}. {marker} {pkg}")
+        print(f"  {i:>3}. {marker} {pkg}")
 
-    selection = input("\nEnter numbers (comma separated): ").strip()
+    selection = input("\nSelect: ").strip()
+    
     if not selection:
+        print("Selection unchanged")
         return
 
     selected = []
-    for num in selection.split(","):
-        num = num.strip()
-        if num.isdigit():
-            idx = int(num) - 1
+    for part in selection.split(","):
+        part = part.strip()
+        if part.isdigit():
+            idx = int(part) - 1
             if 0 <= idx < len(all_packages):
                 selected.append(all_packages[idx])
+        elif part:
+            #@ Logic: manual package name input
+            selected.append(part)
 
-    config["packages"] = selected
-    save_config(config_path, config)
-
-    for pkg in selected:
-        print(f"  [OK] {pkg} selected")
-    print(f"\n{len(selected)} package(s) configured")
+    if selected:
+        config["packages"] = selected
+        save_config(config_path, config)
+        print(f"\n{len(selected)} package(s) configured:")
+        for pkg in selected:
+            print(f"  [OK] {pkg}")
+    else:
+        print("No valid packages selected")
 
 
 async def menu_setup_join(config, config_path):
