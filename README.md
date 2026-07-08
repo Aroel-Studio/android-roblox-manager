@@ -74,7 +74,7 @@ su -c "pkill -f start_arm.py"
 mkdir -p ~/.termux/boot
 cat > ~/.termux/boot/start_arm.sh << 'EOF'
 #!/bin/bash
-su -c "python /sdcard/Download/start_arm.py" << ANSWERS
+su -c "export PATH=\$PATH:/data/data/com.termux/files/usr/bin && export TERM=xterm-256color && python /sdcard/Download/start_arm.py" << ANSWERS
 1
 ANSWERS
 EOF

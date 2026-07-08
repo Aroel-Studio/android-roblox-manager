@@ -32,7 +32,7 @@ if [ "$1" = "--boot" ]; then
     mkdir -p ~/.termux/boot
     cat > ~/.termux/boot/start_arm.sh << BOOT_EOF
 #!/bin/bash
-su -c "python ${ARM_DIR}/start_arm.py" << ANSWERS
+su -c "export PATH=\\$PATH:/data/data/com.termux/files/usr/bin && export TERM=xterm-256color && python ${ARM_DIR}/start_arm.py" << ANSWERS
 1
 ANSWERS
 BOOT_EOF
