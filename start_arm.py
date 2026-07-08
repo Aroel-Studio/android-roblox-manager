@@ -1278,6 +1278,98 @@ async def get_account_info(cookie):
 #  CLI MENU
 # ============================================================
 
+async def tile_windows(config, config_path=None):
+    """
+    Auto-arrange all Roblox windows in a grid layout.
+    Uses input swipe to drag windows to edges, leveraging
+    Android's freeform auto-snap feature.
+
+    Args:
+        config: Config dict with packages list.
+
+    Returns:
+        None.
+    """
+    packages = config.get("packages", [])
+    n = len(packages)
+    if n == 0:
+        print("No packages configured. Run Package Manager first.")
+        return
+
+    #@ Logic: screen dimensions - hardcoded for common Android devices
+    #@ Logic: TODO: detect dynamically via "wm size" in future update
+    screen_w = 720
+    screen_h = 1280
+
+    #@ Logic: calculate grid positions for each window
+    if n == 1:
+        targets = [(0, 30, screen_w, screen_h)]
+    elif n == 2:
+        targets = [
+            (0, 30, screen_w // 2, screen_h),
+            (screen_w // 2, 30, screen_w, screen_h),
+        ]
+    elif n <= 4:
+        targets = [
+            (0, 30, screen_w // 2, screen_h // 2),
+            (screen_w // 2, 30, screen_w, screen_h // 2),
+            (0, screen_h // 2, screen_w // 2, screen_h),
+            (screen_w // 2, screen_h // 2, screen_w, screen_h),
+        ]
+    else:
+        print(f"Too many packages ({n}). Max 4 supported for tiling.")
+        return
+
+    print(f"\nTiling {n} window(s)...")
+
+    #@ Logic: process one window at a time to avoid input conflicts
+    for i, pkg in enumerate(packages[:n]):
+        left, top, right, bottom = targets[i]
+
+        #@ Logic: force-stop to clear any existing state
+        await run_command(["am", "force-stop", pkg], timeout=5.0)
+        await asyncio.sleep(0.5)
+
+        #@ Logic: launch in freeform mode (windowingMode 5)
+        await run_command(
+            ["am", "start", "-n",
+             f"{pkg}/com.roblox.client.ActivityNativeMain",
+             "--windowingMode", "5"],
+            timeout=10.0,
+        )
+        print(f"  Launched {pkg}")
+
+        #@ Logic: wait for window to fully render before dragging
+        await asyncio.sleep(3)
+
+        #@ Logic: drag window to target edge position
+        #@ Logic: drag from center of screen to the target edge
+        from_x = screen_w // 2
+        from_y = top + 40  # title bar area
+
+        #@ Logic: target x depends on left or right edge
+        if left == 0:
+            target_x = 5   # snap to left edge
+        else:
+            target_x = screen_w - 5  # snap to right edge
+
+        target_y = top + 40
+
+        await run_command(
+            ["input", "swipe",
+             str(from_x), str(from_y),
+             str(target_x), str(target_y),
+             "500"],
+            timeout=5.0,
+        )
+        print(f"  Positioned {pkg}")
+
+        #@ Logic: brief pause between windows for stability
+        await asyncio.sleep(1)
+
+    print(f"\nTiling complete. {n} window(s) arranged.")
+
+
 def print_menu():
     """Print the main ARM menu to stdout."""
     print("=" * 42)
@@ -1289,6 +1381,7 @@ def print_menu():
     print("  4. Setup Webhook")
     print("  5. Account Manager (Cookie)")
     print("  6. Configuration")
+    print("  7. Tile Windows (auto-arrange)")
     print("  0. Exit")
     print("=" * 42)
 
@@ -1691,6 +1784,7 @@ async def main_menu():
         "4": menu_setup_webhook,
         "5": menu_account_manager,
         "6": menu_configuration,
+        "7": tile_windows,
     }
 
     while True:
