@@ -4,7 +4,7 @@
 # ============================================================
 #
 #  Install / Update:
-#    . <(curl -sL https://github.com/Aroel-Studio/android-roblox-manager/main/setup.sh)
+#    . <(curl -sL https://raw.githubusercontent.com/Aroel-Studio/android-roblox-manager/main/setup.sh)
 #
 #  Run ARM:
 #    su -c "python /sdcard/Download/start_arm.py"
