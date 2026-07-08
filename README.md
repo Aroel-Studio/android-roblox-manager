@@ -55,7 +55,7 @@ Note: For Android 10, replace /sdcard/Download/ with /sdcard/download/ (lowercas
 ### Step 5: Run ARM v3
 
 ```
-su -c "python /sdcard/Download/start_arm.py"
+tsu -c "python /sdcard/Download/start_arm.py"
 ```
 
 ## Update / Reinstall

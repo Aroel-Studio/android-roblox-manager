@@ -7,7 +7,7 @@
 #    . <(curl -sL https://raw.githubusercontent.com/Aroel-Studio/android-roblox-manager/main/setup.sh)
 #
 #  Run ARM:
-#    su -c "python /sdcard/Download/start_arm.py"
+#    tsu -c "python /sdcard/Download/start_arm.py"
 #
 #  Stop ARM:
 #    su -c "pkill -f start_arm.py"
@@ -32,7 +32,7 @@ if [ "$1" = "--boot" ]; then
     mkdir -p ~/.termux/boot
     cat > ~/.termux/boot/start_arm.sh << BOOT_EOF
 #!/bin/bash
-su -c "export PATH=\\$PATH:/data/data/com.termux/files/usr/bin && export TERM=xterm-256color && python ${ARM_DIR}/start_arm.py" << ANSWERS
+tsu -c "python ${ARM_DIR}/start_arm.py" << ANSWERS
 1
 ANSWERS
 BOOT_EOF
@@ -86,7 +86,7 @@ fi
 echo "=========================================="
 echo ""
 echo "  Run ARM:"
-echo "    su -c \"python ${ARM_DIR}/start_arm.py\""
+echo "    tsu -c \"python ${ARM_DIR}/start_arm.py\""
 echo ""
 echo "  Auto-boot (optional):"
 echo "    bash ${ARM_DIR}/setup.sh --boot"
