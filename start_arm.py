@@ -1376,12 +1376,16 @@ async def menu_package_manager(config, config_path):
         print("No packages found. Try manual input.")
         manual = input("Enter package name (or press Enter to skip): ").strip()
         if manual:
-            config["packages"] = [manual]
+            config["packages"] = list(set(config.get("packages", []) + [manual]))
             save_config(config_path, config)
             print(f"  [OK] {manual} added")
         return
 
     current = config.get("packages", [])
+    
+    top_packages = [pkg for pkg in current if pkg in all_packages]
+    other_packages = [pkg for pkg in all_packages if pkg not in current]
+    display_packages = top_packages + other_packages
     
     print("\nSelect packages to monitor:")
     print("  Enter numbers separated by commas (e.g. 1,2,3,5)")
@@ -1389,14 +1393,21 @@ async def menu_package_manager(config, config_path):
     print("  Leave empty to keep current selection")
     print()
     
-    for i, pkg in enumerate(all_packages, 1):
+    for i, pkg in enumerate(display_packages, 1):
         marker = "[x]" if pkg in current else "[ ]"
         print(f"  {i:>3}. {marker} {pkg}")
 
+    print("\n  Tip: Type 149,150 to select both. Type A to clear all.")
     selection = input("\nSelect: ").strip()
     
     if not selection:
         print("Selection unchanged")
+        return
+
+    if selection.lower() == "a":
+        config["packages"] = []
+        save_config(config_path, config)
+        print("\nAll packages cleared")
         return
 
     selected = []
@@ -1404,16 +1415,18 @@ async def menu_package_manager(config, config_path):
         part = part.strip()
         if part.isdigit():
             idx = int(part) - 1
-            if 0 <= idx < len(all_packages):
-                selected.append(all_packages[idx])
+            if 0 <= idx < len(display_packages):
+                selected.append(display_packages[idx])
         elif part:
             selected.append(part)
 
     if selected:
-        config["packages"] = selected
+        # Merge with current selection without losing order using dict.fromkeys
+        merged = list(dict.fromkeys(config.get("packages", []) + selected))
+        config["packages"] = merged
         save_config(config_path, config)
-        print(f"\n{len(selected)} package(s) configured:")
-        for pkg in selected:
+        print(f"\n{len(merged)} package(s) configured:")
+        for pkg in merged:
             print(f"  [OK] {pkg}")
     else:
         print("No valid packages selected")
