@@ -1327,17 +1327,6 @@ async def display_loop(config):
 
 
 async def menu_package_manager(config, config_path):
-    """
-    Show all installed packages. User selects which ones to monitor.
-    Supports multi-select by number and manual package name input.
-
-    Args:
-        config: Config dict.
-        config_path: Path to config.json.
-
-    Returns:
-        None.
-    """
     print("\nScanning installed packages")
     all_packages = await detect_all_packages()
 
@@ -1353,8 +1342,9 @@ async def menu_package_manager(config, config_path):
     current = config.get("packages", [])
     
     print("\nSelect packages to monitor:")
-    print("  (Enter numbers separated by commas, or type a package name manually)")
-    print("  (Leave empty to keep current selection)")
+    print("  Enter numbers separated by commas (e.g. 1,2,3,5)")
+    print("  Or type a package name manually")
+    print("  Leave empty to keep current selection")
     print()
     
     for i, pkg in enumerate(all_packages, 1):
@@ -1375,7 +1365,6 @@ async def menu_package_manager(config, config_path):
             if 0 <= idx < len(all_packages):
                 selected.append(all_packages[idx])
         elif part:
-            #@ Logic: manual package name input
             selected.append(part)
 
     if selected:
